@@ -8,6 +8,23 @@ import math
 
 from dash.dependencies import Input, Output
 
+# Inline CSS
+tabs_styles = {
+    'height': '44px'
+}
+tab_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'padding': '6px',
+    'fontWeight': 'bold'
+}
+tab_selected_style = {
+    'borderTop': '1px solid #d6d6d6',
+    'borderBottom': '1px solid #d6d6d6',
+    'backgroundColor': '#119DFF',
+    'color': 'white',
+    'padding': '6px'
+}
+
 # Prepare data
 columns = {
     'active_product': 'Active Products',
@@ -25,8 +42,8 @@ area_summary.reset_index(level='area', inplace=True)
 word_counts = pd.read_csv('word_counts.csv', index_col=0)
 
 # Prepare app
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css',
-                        'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css']
+external_stylesheets = [
+    'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 app.config['suppress_callback_exceptions'] = True
@@ -43,13 +60,13 @@ app.layout = html.Div([
             ], className='d-flex')
         ], className='container')
     ], className='header py-4'),
-    dcc.Tabs(id='tabs', value='tab_home',
+    dcc.Tabs(id='tabs', value='tab_home', style=tabs_styles,
              children=[
-                 dcc.Tab(label='Home', value='tab_home'),
-                 dcc.Tab(label='Histogram', value='tab_histogram'),
-                 dcc.Tab(label='Scatter Plot', value='tab_scatterplot'),
-                 dcc.Tab(label='Text Analysis', value='tab_text_analysis'),
-                 dcc.Tab(label='Maps', value='tab_maps'),
+                 dcc.Tab(label='Home', value='tab_home', style=tab_style, selected_style=tab_selected_style),
+                 dcc.Tab(label='Histogram', value='tab_histogram', style=tab_style, selected_style=tab_selected_style),
+                 dcc.Tab(label='Scatter Plot', value='tab_scatterplot', style=tab_style, selected_style=tab_selected_style),
+                 dcc.Tab(label='Text Analysis', value='tab_text_analysis', style=tab_style, selected_style=tab_selected_style),
+                 dcc.Tab(label='Maps', value='tab_maps', style=tab_style, selected_style=tab_selected_style),
              ]),
     html.Div(className='my-3 my-md-5'),
     html.Div(id='tabs_content')
@@ -74,7 +91,7 @@ def render_content(tab):
                             html.Div([
                                 html.H4([
                                     len(df)
-                                ], className='m-0', style={'letter-spacing': '0rem'}),
+                                ], className='m-0'),
                                 html.Small('Online Shops Crawled',
                                            className='text-muted')
                             ]),
@@ -90,7 +107,7 @@ def render_content(tab):
                             html.Div([
                                 html.H4([
                                     df['active_product'].sum(),
-                                ], className='m-0', style={'letter-spacing': '0rem'}),
+                                ], className='m-0'),
                                 html.Small('Active Products',
                                            className='text-muted')
                             ]),
@@ -106,7 +123,7 @@ def render_content(tab):
                             html.Div([
                                 html.H4([
                                     df['product_sold'].sum(),
-                                ], className='m-0', style={'letter-spacing': '0rem'}),
+                                ], className='m-0'),
                                 html.Small('Products Sold',
                                            className='text-muted')
                             ]),
@@ -122,7 +139,7 @@ def render_content(tab):
                             html.Div([
                                 html.H4([
                                     len(area_summary),
-                                ], className='m-0', style={'letter-spacing': '0rem'}),
+                                ], className='m-0'),
                                 html.Small('Areas Covered',
                                            className='text-muted')
                             ]),
@@ -136,7 +153,7 @@ def render_content(tab):
                     html.Div([
                         html.Div([
                             html.H3('Overall Data Description', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             dash_table.DataTable(
@@ -162,7 +179,7 @@ def render_content(tab):
                     html.Div([
                         html.Div([
                             html.H3('Per Area Data Description', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             html.Div([
@@ -220,7 +237,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Settings', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             html.Div([
@@ -259,7 +276,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Histogram', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             dcc.Graph(id='histogram')
@@ -277,7 +294,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Settings', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             html.Div([
@@ -305,7 +322,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Scatter Plot', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             dcc.Graph(id='scatterplot')
@@ -324,7 +341,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Word Cloud', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             html.A([
@@ -340,7 +357,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                     html.Div([
                         html.Div([
                             html.H3('Word Frequencies', className='card-title',
-                                    style={'letter-spacing': '0rem'})
+                                    )
                         ], className='card-header'),
                         html.Div([
                             html.Div([
@@ -562,7 +579,7 @@ def update_area_summary_graph(rows):
         Input('word_counts_table', 'filtering_settings'),
     ]
 )
-def update_area_summary_table(pagination_settings, sorting_settings, filtering_settings):
+def update_word_counts_table(pagination_settings, sorting_settings, filtering_settings):
     filtering_expressions = filtering_settings.split(' && ')
     dff = word_counts
     for filter in filtering_expressions:
