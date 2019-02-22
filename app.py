@@ -5,6 +5,7 @@ import dash_table
 import pandas as pd
 import plotly.graph_objs as go
 import math
+import numpy as np
 
 from dash.dependencies import Input, Output
 
@@ -23,6 +24,17 @@ area_summary['count'] = list(df.groupby('area')['num_store'].count())
 area_summary.reset_index(level='area', inplace=True)
 
 word_counts = pd.read_csv('word_counts.csv', index_col=0)
+
+# Prepare data instagram
+columns_ig = {
+    'post_number': 'Number of Posts',
+    'media_count': 'Media Count',
+    'follower_count': 'Follower Count',
+    'following_count': 'Following Count'
+}
+mapblox_token = 'pk.eyJ1IjoiaW1wZXJhdGl2YTI4IiwiYSI6ImNqc2ZvcDJzaDFqZTg0Nm9heWFtMXd2NW0ifQ.4z5BuZSALFx7vM8alGvXzw'
+df_ig = pd.read_csv('instagram.csv', header=0, sep=';')
+
 
 # Prepare app
 external_stylesheets = [
@@ -399,6 +411,60 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
         ], className='container')
         return tab_text_analysis_content
 
+    elif tab == 'tab_maps':
+        tab_maps_content = html.Div([
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.Div([
+                            html.H3('Settings', className='card-title')
+                        ], className='card-header'),
+                        html.Div([
+                            html.Div([
+                                dcc.Markdown('**Color by:**'),
+                                dcc.Dropdown(
+                                    id='column_ig_dropdown',
+                                    options=[{'label': value, 'value': key}
+                                             for key, value in columns_ig.items()],
+                                    value='post_number'
+                                )
+                            ], className='form-group'),
+                            html.Div([
+                                dcc.Markdown('**Data Range:**'),
+                                dcc.RangeSlider(
+                                    id='data_range_ig_slider',
+                                    step=1,
+                                )
+                            ], className='form-group'),
+                            html.Div([
+                                dcc.Markdown('**Opacity:**'),
+                                dcc.Slider(
+                                    id='opacity_slider',
+                                    min=0,
+                                    max=1,
+                                    value=0.4,
+                                    marks={0: '0', 1: '1'},
+                                    step=0.1
+                                )
+                            ], className='form-group')
+                        ], className='card-body')
+                    ], className='card')
+                ], className='col-lg-3'),
+                html.Div([
+                    html.Div([
+                        html.Div([
+                            html.H3('Maps', className='card-title',
+                                    )
+                        ], className='card-header'),
+                        html.Div([
+                            dcc.Graph(id='maps')
+                        ], className='card-body')
+                    ], className='card')
+                ], className='col-lg-9'),
+            ], className='row row-deck')
+        ], className='container')
+        return tab_maps_content
+
 
 @app.callback(
     Output('data_range_slider', 'min'),
@@ -642,6 +708,89 @@ def update_word_counts_graph(rows):
             )
         ])
     ], className='row')
+
+
+@app.callback(
+    Output('data_range_ig_slider', 'min'),
+    [Input('column_ig_dropdown', 'value')]
+)
+def update_data_range_ig_slider_min(value):
+    return df_ig[value].min()
+
+
+@app.callback(
+    Output('data_range_ig_slider', 'max'),
+    [Input('column_ig_dropdown', 'value')]
+)
+def update_data_range_ig_slider_max(value):
+    return df_ig[value].max()
+
+
+@app.callback(
+    Output('data_range_ig_slider', 'value'),
+    [Input('data_range_ig_slider', 'min'), Input('data_range_ig_slider', 'max')]
+)
+def update_data_range_ig_slider_value(min_value, max_value):
+    return [min_value, max_value]
+
+
+@app.callback(
+    Output('data_range_ig_slider', 'marks'),
+    [Input('data_range_ig_slider', 'min'), Input('data_range_ig_slider', 'max')]
+)
+def update_data_range_ig_slider_marks(min_value, max_value):
+    return {min_value: {'label': str(min_value)}, max_value: {'label': str(max_value)}}
+
+
+@app.callback(
+    Output('maps', 'figure'),
+    [
+        Input('column_ig_dropdown', 'value'),
+        Input('opacity_slider', 'value'),
+        Input('data_range_ig_slider', 'value')
+    ]
+)
+def update_maps(color_by, opacity, range_value):
+    dff_ig = df_ig[(df_ig[color_by]>=range_value[0]) & (df_ig[color_by]<=range_value[1])]
+    print(len(dff_ig))
+    figure = {
+        'data': [
+            go.Scattermapbox(
+                lat=list(dff_ig['lat']),
+                lon=list(dff_ig['lng']),
+                mode='markers',
+                marker=dict(
+                    # size=dff_ig['following_count'],
+                    # sizemode='area',
+                    # sizeref = 2. * max(dff_ig['following_count']) / (30. ** 2),
+                    # sizemin=5,
+                    size=7,
+                    opacity=opacity,
+                    color=dff_ig[color_by],
+                    colorscale='RdBu',
+                    showscale=True,
+                ),
+                # text=,
+            )
+        ],
+        'layout': {
+            'title': 'Map of Instagram #olshop Posts by {}'.format(columns_ig[color_by]),
+            'width': 800,
+            'height': 550,
+            'hovermode': 'closest',
+            'mapbox': {
+                'accesstoken': mapblox_token,
+                'bearing': 0,
+                'center': {
+                    'lat': -2.600029,
+                    'lon': 118.015776,
+                },
+                'pitch': 0,
+                'zoom': 3
+            }
+        }
+    }
+    return figure
 
 
 if __name__ == '__main__':
