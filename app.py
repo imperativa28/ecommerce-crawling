@@ -8,23 +8,6 @@ import math
 
 from dash.dependencies import Input, Output
 
-# Inline CSS
-tabs_styles = {
-    'height': '44px'
-}
-tab_style = {
-    'borderBottom': '1px solid #d6d6d6',
-    'padding': '6px',
-    'fontWeight': 'bold'
-}
-tab_selected_style = {
-    'borderTop': '1px solid #d6d6d6',
-    'borderBottom': '1px solid #d6d6d6',
-    'backgroundColor': '#119DFF',
-    'color': 'white',
-    'padding': '6px'
-}
-
 # Prepare data
 columns = {
     'active_product': 'Active Products',
@@ -55,19 +38,32 @@ app.layout = html.Div([
         html.Div([
             html.Div([
                 html.A([
-                    'Dashboard Monitoring Crawler ECommerce'
+                    html.I(className='fab fa-flipboard ',
+                           style={'margin-right': '10px'}),
+                    'Dashboard Crawler ECommerce'
                 ], className='header-brand')
             ], className='d-flex')
         ], className='container')
     ], className='header py-4'),
-    dcc.Tabs(id='tabs', value='tab_home', style=tabs_styles,
-             children=[
-                 dcc.Tab(label='Home', value='tab_home', style=tab_style, selected_style=tab_selected_style),
-                 dcc.Tab(label='Histogram', value='tab_histogram', style=tab_style, selected_style=tab_selected_style),
-                 dcc.Tab(label='Scatter Plot', value='tab_scatterplot', style=tab_style, selected_style=tab_selected_style),
-                 dcc.Tab(label='Text Analysis', value='tab_text_analysis', style=tab_style, selected_style=tab_selected_style),
-                 dcc.Tab(label='Maps', value='tab_maps', style=tab_style, selected_style=tab_selected_style),
-             ]),
+    html.Div([
+        html.Div([
+            html.Div([
+                dcc.Tabs(id='tabs', value='tab_home', parent_className='col-lg order-lg-first', className='nav nav-tabs border-0 flex-column flex-lg-row',
+                         children=[
+                             dcc.Tab(label='Home', value='tab_home',
+                                     className='tab_class', selected_className='tab_selected_class'),
+                             dcc.Tab(label='Histogram', value='tab_histogram',
+                                     className='tab_class', selected_className='tab_selected_class'),
+                             dcc.Tab(label='Scatter Plot', value='tab_scatterplot',
+                                     className='tab_class', selected_className='tab_selected_class'),
+                             dcc.Tab(label='Text Analysis', value='tab_text_analysis',
+                                     className='tab_class', selected_className='tab_selected_class'),
+                             dcc.Tab(label='Maps', value='tab_maps',
+                                     className='tab_class', selected_className='tab_selected_class'),
+                         ])
+            ], className='row align-item-center')
+        ], className='container')
+    ], className='header d-lg-flex p-0'),
     html.Div(className='my-3 my-md-5'),
     html.Div(id='tabs_content')
 ])
@@ -161,6 +157,7 @@ def render_content(tab):
                                 columns=[{'name': name, 'id': id}
                                          for name, id in list(zip(col_names, summary.columns))],
                                 data=summary.to_dict('rows'),
+                                style_table={'overflowX': 'scroll'},
                                 style_cell={'padding': '5px'},
                                 style_header={
                                     'backgroundColor': 'white',
@@ -196,6 +193,7 @@ def render_content(tab):
                                     {'name': 'Count',
                                         'id': 'count'},
                                 ],
+                                style_table={'overflowX': 'scroll'},
                                 style_cell={'padding': '5px'},
                                 style_header={
                                     'backgroundColor': 'white',
@@ -251,15 +249,14 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                             ], className='form-group'),
                             html.Div([
                                 dcc.Markdown('**Bins:**'),
-                                dcc.Slider(
-                                    id='bin_slider',
-                                    min=0,
+                                dcc.Input(
+                                    id='bin_input',
+                                    placeholder='Bins',
+                                    type='number',
+                                    value='20',
+                                    min=1,
                                     max=100,
-                                    value=20,
-                                    marks={
-                                        0: {'label': '0'},
-                                        100: {'label': '100'}
-                                    }
+                                    step=1
                                 )
                             ], className='form-group'),
                             html.Div([
@@ -346,8 +343,8 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                         html.Div([
                             html.A([
                                 html.Img(src='assets/image/wordcloudclean.png',
-                                         height='350px', width='350px')
-                            ], className='mb-3 text-center')
+                                         height='350px', width='350px', className='mx-auto d-block')
+                            ], className='mb-3')
                         ], className='card-body')
                     ], className='card')
                 ], className='col-lg-4'),
@@ -369,6 +366,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                                     {'name': 'Word', 'id': 'word'},
                                     {'name': 'Frequencies', 'id': 'frequencies'},
                                 ],
+                                style_table={'overflowX': 'scroll'},
                                 style_cell={'padding': '5px'},
                                 style_header={
                                     'backgroundColor': 'white',
@@ -384,7 +382,7 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                                 sorting_type='single',
                                 sorting_settings=[],
                                 filtering='be',
-                                filtering_settings=''
+                                filtering_settings='',
                             ),
                             html.Hr(),
                             dcc.Markdown(
@@ -438,7 +436,7 @@ def update_data_range_slider_marks(min_value, max_value):
     Output('histogram', 'figure'),
     [
         Input('column_dropdown', 'value'),
-        Input('bin_slider', 'value'),
+        Input('bin_input', 'value'),
         Input('data_range_slider', 'value')
     ]
 )
@@ -450,7 +448,7 @@ def update_histogram(column, bin, range_value):
                 xbins=dict(
                     start=range_value[0],
                     end=range_value[1],
-                    size=math.ceil((range_value[1] - range_value[0])/bin)
+                    size=math.ceil((range_value[1] - range_value[0])/int(bin))
                 ),
             )
         ],
@@ -562,8 +560,8 @@ def update_area_summary_graph(rows):
                             'title': name,
                             'automargin': True
                         },
-                        'height': 250,
-                        'margin': {'t': 30, 'l': 10, 'r': 10},
+                        'height': 300,
+                        'margin': {'t': 30, 'l': 15, 'r': 15, 'b': 30},
                     },
                 },
             )
@@ -637,8 +635,8 @@ def update_word_counts_graph(rows):
                             'title': 'Frequencies',
                             'automargin': True
                         },
-                        'height': 250,
-                        'margin': {'t': 30, 'l': 10, 'r': 10},
+                        'height': 300,
+                        'margin': {'t': 30, 'l': 15, 'r': 15, 'b': 30},
                     },
                 },
             )

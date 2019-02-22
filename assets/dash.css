@@ -367,6 +367,30 @@ ol {
   float: left; }
 
 
+/* Tabs
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.tab_class {
+    display: flex !important;
+    align-items: center !important;
+    color: #9aa0ac !important;
+    border: none !important;
+    background: transparent !important;
+    width: auto !important;
+    padding: 1rem .75rem !important;
+}
+
+.tab_selected_class {
+    display: flex !important;
+    align-items: center !important;
+    color: #9aa0ac !important;
+    border-bottom: 1px solid transparent !important;
+    border-color: #467fcf !important;
+    color: #467fcf !important;
+    background: transparent !important;
+    width: auto !important;
+}
+
+
 /* Misc
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 hr {
