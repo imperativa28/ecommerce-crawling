@@ -26,15 +26,24 @@ area_summary.reset_index(level='area', inplace=True)
 word_counts = pd.read_csv('word_counts.csv', index_col=0)
 
 # Prepare data instagram
+mapblox_token = 'pk.eyJ1IjoiaW1wZXJhdGl2YTI4IiwiYSI6ImNqc2ZvcDJzaDFqZTg0Nm9heWFtMXd2NW0ifQ.4z5BuZSALFx7vM8alGvXzw'
 columns_ig = {
     'post_number': 'Number of Posts',
     'media_count': 'Media Count',
     'follower_count': 'Follower Count',
     'following_count': 'Following Count'
 }
-mapblox_token = 'pk.eyJ1IjoiaW1wZXJhdGl2YTI4IiwiYSI6ImNqc2ZvcDJzaDFqZTg0Nm9heWFtMXd2NW0ifQ.4z5BuZSALFx7vM8alGvXzw'
 df_ig = pd.read_csv('instagram.csv', header=0, sep=';')
 
+# testing
+# df_ig = pd.read_csv('instagram_all.csv', header=0, sep=';')
+# df_ig['taken_at_timestamp'] = pd.to_datetime(df_ig['taken_at_timestamp'], utc=True, unit='s')
+# df_ig['year'] = pd.DatetimeIndex(df_ig['taken_at_timestamp']).year
+# df_ig['month'] = pd.DatetimeIndex(df_ig['taken_at_timestamp']).month
+# df_ig['day'] = pd.DatetimeIndex(df_ig['taken_at_timestamp']).day
+# df_ig['hour'] = pd.DatetimeIndex(df_ig['taken_at_timestamp']).hour
+# df.groupby(['lng', 'lat', 'username'])['location_id'].count()
+# df_ig['taken_at_timestamp'].max().strftime('%Y-%m-%d')
 
 # Prepare app
 external_stylesheets = [
@@ -70,7 +79,7 @@ app.layout = html.Div([
                                      className='tab_class', selected_className='tab_selected_class'),
                              dcc.Tab(label='Text Analysis', value='tab_text_analysis',
                                      className='tab_class', selected_className='tab_selected_class'),
-                             dcc.Tab(label='Maps', value='tab_maps',
+                             dcc.Tab(label='Map', value='tab_map',
                                      className='tab_class', selected_className='tab_selected_class'),
                          ])
             ], className='row align-item-center')
@@ -85,7 +94,7 @@ app.layout = html.Div([
               [Input('tabs', 'value')])
 def render_content(tab):
     if tab == 'tab_home':
-        col_names = ['Column', 'Count', 'Mean',
+        col_names = ['Column', 'Non Null Data', 'Mean',
                      'Std', 'Min', '25%', '50%', '75%', 'Max']
         tab_home_content = html.Div([
             html.Div([
@@ -253,29 +262,34 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                             html.Div([
                                 dcc.Markdown('**Column:**'),
                                 dcc.Dropdown(
-                                    id='column_dropdown',
+                                    id='column_dropdown_histogram',
                                     options=[{'label': value, 'value': key}
                                              for key, value in columns.items()],
                                     value='active_product'
                                 )
                             ], className='form-group'),
                             html.Div([
+                                dcc.Markdown('**Outlier:**'),
+                                dcc.RadioItems(
+                                    id='outlier_histogram',
+                                    labelStyle={'margin-right': '0.5rem'},
+                                    options=[
+                                        {'label': 'Without Outlier', 'value': 0},
+                                        {'label': 'With Outlier', 'value': 1},
+                                    ],
+                                    value=0
+                                )
+                            ], className='form-group'),
+                            html.Div([
                                 dcc.Markdown('**Bins:**'),
                                 dcc.Input(
-                                    id='bin_input',
+                                    id='bin_input_histogram',
                                     placeholder='Bins',
                                     type='number',
                                     value='20',
                                     min=1,
                                     max=100,
                                     step=1
-                                )
-                            ], className='form-group'),
-                            html.Div([
-                                dcc.Markdown('**Data Range:**'),
-                                dcc.RangeSlider(
-                                    id='data_range_slider',
-                                    step=1,
                                 )
                             ], className='form-group')
                         ], className='card-body')
@@ -284,12 +298,15 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.H3('Histogram', className='card-title',
-                                    )
+                            html.H3('Histogram', className='card-title')
                         ], className='card-header'),
                         html.Div([
-                            dcc.Graph(id='histogram')
-                        ], className='card-body'),
+                            dcc.Graph(id='graph_histogram'),
+                            dcc.RangeSlider(
+                                id='data_range_slider_histogram',
+                                step=1,
+                            )
+                        ], className='card-body', style={'padding-top': '0'}),
                     ], className='card')
                 ], className='col-lg-9'),
             ], className='row row-deck'),
@@ -302,14 +319,13 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.H3('Settings', className='card-title',
-                                    )
+                            html.H3('Settings', className='card-title')
                         ], className='card-header'),
                         html.Div([
                             html.Div([
                                 dcc.Markdown('**X Axis:**'),
                                 dcc.Dropdown(
-                                    id='x_axis_dropdown',
+                                    id='x_axis_dropdown_scatterplot',
                                     options=[{'label': value, 'value': key}
                                              for key, value in columns.items()],
                                     value='active_product'
@@ -318,10 +334,22 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                             html.Div([
                                 dcc.Markdown('**Y Axis:**'),
                                 dcc.Dropdown(
-                                    id='y_axis_dropdown',
+                                    id='y_axis_dropdown_scatterplot',
                                     options=[{'label': value, 'value': key}
                                              for key, value in columns.items()],
                                     value='product_sold'
+                                )
+                            ], className='form-group'),
+                            html.Div([
+                                dcc.Markdown('**Outlier:**'),
+                                dcc.RadioItems(
+                                    id='outlier_scatterplot',
+                                    labelStyle={'margin-right': '0.5rem'},
+                                    options=[
+                                        {'label': 'Without Outlier', 'value': 0},
+                                        {'label': 'With Outlier', 'value': 1},
+                                    ],
+                                    value=0
                                 )
                             ], className='form-group')
                         ], className='card-body')
@@ -330,12 +358,11 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.H3('Scatter Plot', className='card-title',
-                                    )
+                            html.H3('Scatter Plot', className='card-title')
                         ], className='card-header'),
                         html.Div([
-                            dcc.Graph(id='scatterplot')
-                        ], className='card-body'),
+                            dcc.Graph(id='graph_scatterplot')
+                        ], className='card-body', style={'padding-top': '0'}),
                     ], className='card')
                 ], className='col-lg-9')
             ], className='row row-deck')
@@ -371,9 +398,9 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                         html.Div([
                             html.Div([
 
-                            ], id='word_counts_graph'),
+                            ], id='graph_word_counts'),
                             dash_table.DataTable(
-                                id='word_counts_table',
+                                id='table_word_counts',
                                 columns=[
                                     {'name': 'Word', 'id': 'word'},
                                     {'name': 'Frequencies', 'id': 'frequencies'},
@@ -411,8 +438,8 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
         ], className='container')
         return tab_text_analysis_content
 
-    elif tab == 'tab_maps':
-        tab_maps_content = html.Div([
+    elif tab == 'tab_map':
+        tab_map_content = html.Div([
             html.Div([
                 html.Div([
                     html.Div([
@@ -423,23 +450,28 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                             html.Div([
                                 dcc.Markdown('**Color by:**'),
                                 dcc.Dropdown(
-                                    id='column_ig_dropdown',
+                                    id='column_dropdown_map',
                                     options=[{'label': value, 'value': key}
                                              for key, value in columns_ig.items()],
                                     value='post_number'
                                 )
                             ], className='form-group'),
                             html.Div([
-                                dcc.Markdown('**Data Range:**'),
-                                dcc.RangeSlider(
-                                    id='data_range_ig_slider',
-                                    step=1,
+                                dcc.Markdown('**Outlier:**'),
+                                dcc.RadioItems(
+                                    id='outlier_map',
+                                    labelStyle={'margin-right': '0.5rem'},
+                                    options=[
+                                        {'label': 'Without Outlier', 'value': 0},
+                                        {'label': 'With Outlier', 'value': 1},
+                                    ],
+                                    value=0
                                 )
                             ], className='form-group'),
                             html.Div([
                                 dcc.Markdown('**Opacity:**'),
                                 dcc.Slider(
-                                    id='opacity_slider',
+                                    id='opacity_slider_map',
                                     min=0,
                                     max=1,
                                     value=0.4,
@@ -453,60 +485,97 @@ A quick note on filtering. **Dash** have defined their own syntax for performing
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.H3('Maps', className='card-title',
-                                    )
+                            html.H3('Maps', className='card-title'),
+                            html.Div([
+                                dcc.DatePickerSingle(
+                                    id='date_picker_map',
+                                    min_date_allowed='2018-12-21',
+                                    max_date_allowed='2019-02-02',
+                                    date='2019-01-03'
+                                )
+                            ], className='card-options')
                         ], className='card-header'),
                         html.Div([
-                            dcc.Graph(id='maps')
-                        ], className='card-body')
+                            dcc.Graph(id='graph_map'),
+                            dcc.RangeSlider(
+                                    id='data_range_slider_map',
+                                    step=1,
+                                )
+                        ], className='card-body', style={'padding-top': '0'})
                     ], className='card')
                 ], className='col-lg-9'),
             ], className='row row-deck')
         ], className='container')
-        return tab_maps_content
+        return tab_map_content
+
+
+# helper function
+def remove_outlier(df, column):
+    return df[((df[column] - df[column].mean()) / df[column].std()).abs() < 3][column]
+
+
+# tab_histogram callback
+@app.callback(
+    Output('outlier_histogram', 'value'),
+    [Input('column_dropdown_histogram', 'value')]
+)
+def update_outlier_histogram_value(column):
+    return 0
 
 
 @app.callback(
-    Output('data_range_slider', 'min'),
-    [Input('column_dropdown', 'value')]
+    Output('data_range_slider_histogram', 'min'),
+    [
+        Input('column_dropdown_histogram', 'value'),
+        Input('outlier_histogram', 'value')
+    ]
 )
-def update_data_range_slider_min(value):
-    return df[value].min()
+def update_data_range_slider_histogram_min(column, with_outlier):
+    return df[column].min() if with_outlier else remove_outlier(df, column).min()
 
 
 @app.callback(
-    Output('data_range_slider', 'max'),
-    [Input('column_dropdown', 'value')]
+    Output('data_range_slider_histogram', 'max'),
+    [
+        Input('column_dropdown_histogram', 'value'),
+        Input('outlier_histogram', 'value')
+    ]
 )
-def update_data_range_slider_max(value):
-    return df[value].max()
+def update_data_range_slider_histogram_max(column, with_outlier):
+    return df[column].max() if with_outlier else remove_outlier(df, column).max()
 
 
 @app.callback(
-    Output('data_range_slider', 'value'),
-    [Input('data_range_slider', 'min'), Input('data_range_slider', 'max')]
+    Output('data_range_slider_histogram', 'value'),
+    [
+        Input('data_range_slider_histogram', 'min'),
+        Input('data_range_slider_histogram', 'max')
+    ]
 )
-def update_data_range_slider_value(min_value, max_value):
+def update_data_range_slider_histogram_value(min_value, max_value):
     return [min_value, max_value]
 
 
 @app.callback(
-    Output('data_range_slider', 'marks'),
-    [Input('data_range_slider', 'min'), Input('data_range_slider', 'max')]
+    Output('data_range_slider_histogram', 'marks'),
+    [
+        Input('data_range_slider_histogram', 'min'),
+        Input('data_range_slider_histogram', 'max')
+    ]
 )
-def update_data_range_slider_marks(min_value, max_value):
+def update_data_range_slider_histogram_marks(min_value, max_value):
     return {min_value: {'label': str(min_value)}, max_value: {'label': str(max_value)}}
 
 
 @app.callback(
-    Output('histogram', 'figure'),
+    Output('graph_histogram', 'figure'),
     [
-        Input('column_dropdown', 'value'),
-        Input('bin_input', 'value'),
-        Input('data_range_slider', 'value')
+        Input('column_dropdown_histogram', 'value'),
+        Input('bin_input_histogram', 'value'),
+        Input('data_range_slider_histogram', 'value')
     ]
 )
-def update_histogram(column, bin, range_value):
+def update_graph_histogram(column, bin, range_value):
     figure = {
         'data': [
             go.Histogram(
@@ -531,19 +600,21 @@ def update_histogram(column, bin, range_value):
     return figure
 
 
+# tab_scatterplot callback
 @app.callback(
-    Output('scatterplot', 'figure'),
+    Output('graph_scatterplot', 'figure'),
     [
-        Input('x_axis_dropdown', 'value'),
-        Input('y_axis_dropdown', 'value'),
+        Input('x_axis_dropdown_scatterplot', 'value'),
+        Input('y_axis_dropdown_scatterplot', 'value'),
+        Input('outlier_scatterplot', 'value'),
     ]
 )
-def update_scatterplot(x_axis, y_axis):
+def update_graph_scatterplot(x_axis, y_axis, with_outlier):
     figure = {
         'data': [
             go.Scattergl(
-                x=df[x_axis],
-                y=df[y_axis],
+                x=df[x_axis] if with_outlier else remove_outlier(df, x_axis),
+                y=df[y_axis] if with_outlier else remove_outlier(df, y_axis),
                 mode='markers'
             )
         ],
@@ -560,6 +631,7 @@ def update_scatterplot(x_axis, y_axis):
     return figure
 
 
+# tab_home callback
 @app.callback(
     Output('area_summary_table', 'data'),
     [
@@ -635,15 +707,16 @@ def update_area_summary_graph(rows):
         for name, id in [('Active Products', 'active_product'), ('Products Sold', 'product_sold'), ('Count', 'count')]], className='row')
 
 
+# tab_text_analysis callback
 @app.callback(
-    Output('word_counts_table', 'data'),
+    Output('table_word_counts', 'data'),
     [
-        Input('word_counts_table', 'pagination_settings'),
-        Input('word_counts_table', 'sorting_settings'),
-        Input('word_counts_table', 'filtering_settings'),
+        Input('table_word_counts', 'pagination_settings'),
+        Input('table_word_counts', 'sorting_settings'),
+        Input('table_word_counts', 'filtering_settings'),
     ]
 )
-def update_word_counts_table(pagination_settings, sorting_settings, filtering_settings):
+def update_table_word_counts(pagination_settings, sorting_settings, filtering_settings):
     filtering_expressions = filtering_settings.split(' && ')
     dff = word_counts
     for filter in filtering_expressions:
@@ -675,14 +748,13 @@ def update_word_counts_table(pagination_settings, sorting_settings, filtering_se
 
 
 @app.callback(
-    Output('word_counts_graph', 'children'),
-    [Input('word_counts_table', 'data')])
-def update_word_counts_graph(rows):
+    Output('graph_word_counts', 'children'),
+    [Input('table_word_counts', 'data')])
+def update_graph_word_counts(rows):
     dff = pd.DataFrame(rows)
     return html.Div([
         html.Div([
             dcc.Graph(
-                id='word_counts',
                 figure={
                     'data': [
                         {
@@ -710,49 +782,70 @@ def update_word_counts_graph(rows):
     ], className='row')
 
 
+# tab_map callback
 @app.callback(
-    Output('data_range_ig_slider', 'min'),
-    [Input('column_ig_dropdown', 'value')]
+    Output('outlier_map', 'value'),
+    [Input('column_dropdown_map', 'value')]
 )
-def update_data_range_ig_slider_min(value):
-    return df_ig[value].min()
-
-
-@app.callback(
-    Output('data_range_ig_slider', 'max'),
-    [Input('column_ig_dropdown', 'value')]
-)
-def update_data_range_ig_slider_max(value):
-    return df_ig[value].max()
+def update_outlier_map_value(column):
+    return 0
 
 
 @app.callback(
-    Output('data_range_ig_slider', 'value'),
-    [Input('data_range_ig_slider', 'min'), Input('data_range_ig_slider', 'max')]
+    Output('data_range_slider_map', 'min'),
+    [
+        Input('column_dropdown_map', 'value'),
+        Input('outlier_map', 'value')
+    ]
 )
-def update_data_range_ig_slider_value(min_value, max_value):
+def update_data_range_slider_map_min(column, with_outlier):
+    return df_ig[column].min() if with_outlier else remove_outlier(df_ig, column).min()
+
+
+@app.callback(
+    Output('data_range_slider_map', 'max'),
+    [
+        Input('column_dropdown_map', 'value'),
+        Input('outlier_map', 'value')
+    ]
+)
+def update_data_range_slider_map_max(column, with_outlier):
+    return df_ig[column].max() if with_outlier else remove_outlier(df_ig, column).max()
+
+
+@app.callback(
+    Output('data_range_slider_map', 'value'),
+    [
+        Input('data_range_slider_map', 'min'),
+        Input('data_range_slider_map', 'max')
+    ]
+)
+def update_data_range_slider_map_value(min_value, max_value):
     return [min_value, max_value]
 
 
 @app.callback(
-    Output('data_range_ig_slider', 'marks'),
-    [Input('data_range_ig_slider', 'min'), Input('data_range_ig_slider', 'max')]
+    Output('data_range_slider_map', 'marks'),
+    [
+        Input('data_range_slider_map', 'min'),
+        Input('data_range_slider_map', 'max')
+    ]
 )
-def update_data_range_ig_slider_marks(min_value, max_value):
+def update_data_range_slider_map_marks(min_value, max_value):
     return {min_value: {'label': str(min_value)}, max_value: {'label': str(max_value)}}
 
 
 @app.callback(
-    Output('maps', 'figure'),
+    Output('graph_map', 'figure'),
     [
-        Input('column_ig_dropdown', 'value'),
-        Input('opacity_slider', 'value'),
-        Input('data_range_ig_slider', 'value')
+        Input('column_dropdown_map', 'value'),
+        Input('opacity_slider_map', 'value'),
+        Input('data_range_slider_map', 'value')
     ]
 )
-def update_maps(color_by, opacity, range_value):
-    dff_ig = df_ig[(df_ig[color_by]>=range_value[0]) & (df_ig[color_by]<=range_value[1])]
-    print(len(dff_ig))
+def update_graph_map(column, opacity, range_value):
+    dff_ig = df_ig[(df_ig[column] >= range_value[0]) &
+                    (df_ig[column] <= range_value[1])]
     figure = {
         'data': [
             go.Scattermapbox(
@@ -764,17 +857,17 @@ def update_maps(color_by, opacity, range_value):
                     # sizemode='area',
                     # sizeref = 2. * max(dff_ig['following_count']) / (30. ** 2),
                     # sizemin=5,
-                    size=7,
+                    size=5,
                     opacity=opacity,
-                    color=dff_ig[color_by],
+                    color=dff_ig[column],
                     colorscale='RdBu',
                     showscale=True,
                 ),
-                # text=,
+                text=dff_ig['name'],
             )
         ],
         'layout': {
-            'title': 'Map of Instagram #olshop Posts by {}'.format(columns_ig[color_by]),
+            'title': 'Map of Instagram #olshop Posts by {}'.format(columns_ig[column]),
             'width': 800,
             'height': 550,
             'hovermode': 'closest',
